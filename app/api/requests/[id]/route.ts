@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import sgMail from '@sendgrid/mail'
+import { pushRequestToOneC } from '@/lib/integrations/oneC'
 
 export async function GET(
   request: NextRequest,
@@ -110,6 +111,24 @@ export async function PATCH(
         }
       }
     })
+
+    // Пуш обновления в 1С (fire-and-forget)
+    void pushRequestToOneC(
+      {
+        id: requestData.id,
+        status: requestData.status,
+        createdAt: requestData.createdAt.toISOString(),
+        serviceName: requestData.serviceName,
+        preferredAt: requestData.preferredAt ? requestData.preferredAt.toISOString() : null,
+        symptoms: requestData.symptoms,
+        description: requestData.description,
+        price: requestData.price,
+        clientName: requestData.clientName,
+        clientPhone: requestData.clientPhone,
+        clientEmail: requestData.clientEmail,
+      },
+      'updated'
+    )
     const { clientEmail, id , price , clientName} = requestData
     if (clientEmail) {
           const url = `${process.env.APP_URL}/requests/${id}`;

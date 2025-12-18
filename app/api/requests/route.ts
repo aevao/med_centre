@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
+import { pushRequestToOneC } from "@/lib/integrations/oneC";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -66,6 +67,24 @@ export async function POST(request: NextRequest) {
         clientEmail: email || null,
       },
     });
+
+    // Пуш в 1С (не влияет на ответ, если 1С недоступна/не настроена)
+    void pushRequestToOneC(
+      {
+        id: createdRequest.id,
+        status: createdRequest.status,
+        createdAt: createdRequest.createdAt.toISOString(),
+        serviceName: createdRequest.serviceName,
+        preferredAt: createdRequest.preferredAt ? createdRequest.preferredAt.toISOString() : null,
+        symptoms: createdRequest.symptoms,
+        description: createdRequest.description,
+        price: createdRequest.price,
+        clientName: createdRequest.clientName,
+        clientPhone: createdRequest.clientPhone,
+        clientEmail: createdRequest.clientEmail,
+      },
+      "created"
+    );
 
     // Отправка письма, если email указан
     if (email) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
@@ -23,6 +23,7 @@ interface NavbarProps {
 
 export function Navbar({ userRole }: NavbarProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { toast } = useToast()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -77,6 +78,7 @@ export function Navbar({ userRole }: NavbarProps) {
   ]
 
   const visibleItems = navItems.filter(item => item.roles.includes(userRole))
+  const roleLabel = userRole === 'ADMIN' ? 'Админ' : userRole === 'MASTER' ? 'Врач' : 'Пациент'
 
   const MobileSidebar = () => (
     <>
@@ -111,12 +113,18 @@ export function Navbar({ userRole }: NavbarProps) {
           <nav className="flex-1 p-4 space-y-2">
             {visibleItems.map((item) => {
               const Icon = item.icon
+              const active = pathname === item.href
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center space-x-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 hover:bg-white/70 hover:text-slate-900 transition-all"
+                  className={cn(
+                    "flex items-center space-x-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
+                    active
+                      ? "bg-white text-slate-950 shadow-sm"
+                      : "text-slate-700 hover:bg-white/70 hover:text-slate-900"
+                  )}
                 >
                   <Icon className="h-5 w-5" />
                   <span>{item.label}</span>
@@ -143,15 +151,63 @@ export function Navbar({ userRole }: NavbarProps) {
 
   return (
     <>
-      <nav className="sticky top-0 z-30 border-b border-white/30 bg-white/60 backdrop-blur-xl">
+      {/* Floating pill navbar (desktop) */}
+      <nav className="sticky top-0 z-30">
         <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center space-x-4 md:space-x-8">
+          <div className="py-4">
+            <div className="hidden md:flex items-center justify-between rounded-[999px] border border-white/35 bg-white/55 px-3 py-2 shadow-[0_18px_70px_-55px_rgba(15,23,42,0.7)] backdrop-blur-xl">
+              <Link href="/dashboard" className="group flex items-center gap-2 px-2">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+                  <span className="text-sm font-bold">MC</span>
+                </span>
+                <span className="text-base font-semibold tracking-tight text-slate-900 group-hover:text-slate-950">
+                  Медцентр Ви
+                </span>
+              </Link>
+
+              <div className="flex items-center gap-1 rounded-[999px] bg-white/50 p-1">
+                {visibleItems.map((item) => {
+                  const Icon = item.icon
+                  const active = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-2 rounded-[999px] px-4 py-2 text-sm font-medium transition",
+                        active
+                          ? "bg-white text-slate-950 shadow-sm"
+                          : "text-slate-700 hover:bg-white hover:text-slate-950"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="hidden lg:inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  {roleLabel}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={handleLogout}
+                  className="rounded-[999px] bg-white/60 backdrop-blur"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Выход
+                </Button>
+              </div>
+            </div>
+
+            {/* Mobile topbar */}
+            <div className="flex md:hidden items-center justify-between rounded-3xl border border-white/35 bg-white/55 px-3 py-2 shadow-[0_18px_70px_-55px_rgba(15,23,42,0.7)] backdrop-blur-xl">
               {/* Mobile Menu Button */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden"
                 onClick={() => setIsMobileMenuOpen(true)}
               >
                 <Menu className="h-5 w-5" />
@@ -162,38 +218,14 @@ export function Navbar({ userRole }: NavbarProps) {
                   <span className="text-sm font-bold">MC</span>
                 </span>
                 <span className="text-base font-semibold tracking-tight text-slate-900 group-hover:text-slate-950">
-                  Медцентр
+                  Медцентр Ви
                 </span>
               </Link>
 
-              {/* Desktop Navigation */}
-              <div className="hidden md:flex items-center gap-2 rounded-2xl border border-white/30 bg-white/50 p-1 backdrop-blur">
-                {visibleItems.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white hover:text-slate-950 transition"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  )
-                })}
-              </div>
+              <Button variant="ghost" size="icon" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
-
-            {/* Desktop Logout Button */}
-            <Button variant="outline" onClick={handleLogout} className="hidden md:flex rounded-2xl bg-white/60 backdrop-blur">
-              <LogOut className="h-4 w-4 mr-2" />
-              Выход
-            </Button>
-
-            {/* Mobile Logout Button */}
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="md:hidden">
-              <LogOut className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </nav>
